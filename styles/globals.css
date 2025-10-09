@@ -1,0 +1,5 @@
+:root{ --bg:#000; --card:#0f1113; --muted:#9aa0a6; --accent:#fff; --accent-2:#00ffff; --btn:#131313 }
+html,body,#__next{height:100%;margin:0;background:var(--bg);color:var(--accent);font-family:Inter,system-ui,Arial;-webkit-font-smoothing:antialiased}
+.page{max-width:900px;margin:0 auto;padding:8px}
+.skeleton{height:60vh;border-radius:12px;background:linear-gradient(90deg,#0b0b0c,#111,#0b0b0c);animation:shimmer 1.3s linear infinite;background-size:400% 100%}
+@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
