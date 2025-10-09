@@ -1,4 +1,4 @@
-name: CI & Deploy to Firebase Hosting
+name: Deploy Next.js to Firebase
 
 on:
   push:
@@ -9,41 +9,35 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Install dependencies
+      - name: Install deps
         run: npm install
 
-      - name: Build project
-        run: npm run build
+      - name: Build Next.js
+        run: npm run build && npm run export
 
-      - name: Upload production-ready files
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: next-build
-          path: .next
+          path: out
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Download build
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
         with:
           name: next-build
-          path: .next
+          path: out
 
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
+      - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: "${{ secrets.GITHUB_TOKEN }}"
           firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
