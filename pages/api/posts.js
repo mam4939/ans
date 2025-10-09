@@ -1,24 +1,34 @@
-import admin from '../../lib/firebaseAdmin.js';
+import admin from "../../lib/firebaseAdmin";
+import { getFirestore } from "firebase-admin/firestore";
+
+const db = getFirestore();
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  if (!admin || !admin.firestore) return res.status(500).json({ error: 'Admin SDK not initialized' });
-  const { text, image, tags } = req.body || {};
-  if (!(text || image)) return res.status(400).json({ error: 'empty' });
-  if (text && text.length > 5000) return res.status(400).json({ error: 'too_long' });
-  try {
-    const post = {
-      text: text || '',
-      image: image || null,
-      tags: Array.isArray(tags) ? tags.slice(0,10) : [],
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      likesCount: 0,
-      commentsCount: 0
-    };
-    const ref = await admin.firestore().collection('posts').add(post);
-    res.json({ ok: true, id: ref.id });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'server error' });
+  if (req.method === "POST") {
+    try {
+      const { text, imageUrl, deviceId } = JSON.parse(req.body);
+      const docRef = await db.collection("posts").add({
+        text,
+        imageUrl,
+        deviceId,
+        createdAt: new Date(),
+      });
+      return res.status(200).json({ id: docRef.id });
+    } catch (e) {
+      console.error("Ошибка при публикации:", e);
+      return res.status(500).json({ error: e.message });
+    }
   }
+
+  if (req.method === "GET") {
+    try {
+      const snapshot = await db.collection("posts").orderBy("createdAt", "desc").get();
+      const posts = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      return res.status(200).json(posts);
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
+  return res.status(405).end(); // Метод не поддерживается
 }
