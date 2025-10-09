@@ -1,8 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  // ✅ Новый способ для Next.js 14
+  output: 'export',
+
+  // ✅ Отключаем оптимизацию изображений (Cloudinary сам справится)
   images: {
-    domains: ['res.cloudinary.com'],
+    unoptimized: true,
+  },
+
+  // ✅ Включаем строгий режим React
+  reactStrictMode: true,
+
+  // ✅ Если будут API-роуты — пусть билдятся корректно
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
   },
 };
 
