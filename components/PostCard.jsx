@@ -1,68 +1,122 @@
-import { useState } from 'react';
-import { getDeviceId } from '../utils/device';
+// components/PostCard.jsx
+import React, { useEffect, useState } from "react";
 
-export default function PostCard({ post }) {
-  const [liked, setLiked] = useState(false);
-  const [likes, setLikes] = useState(post.likesCount || 0);
+export default function PostCard() {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  async function toggleLike() {
-    const deviceId = getDeviceId();
-    if (!deviceId) return alert('Невозможно получить идентификатор устройства');
-    try {
-      const action = liked ? 'unlike' : 'like';
-      const res = await fetch('/api/like', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId: post.id, deviceId, action })
-      });
-      const j = await res.json();
-      if (j.ok) {
-        setLiked(!liked);
-        setLikes(j.likesCount !== undefined ? j.likesCount : (liked ? likes - 1 : likes + 1));
-      } else {
-        alert('Ошибка: ' + (j.error || 'unknown'));
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const res = await fetch("/api/posts");
+        if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
+        const data = await res.json();
+        setPosts(data);
+      } catch (err) {
+        console.error("Ошибка при загрузке постов:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.error(e);
-      alert('Ошибка связи');
-    }
-  }
+    };
+
+    fetchPosts();
+  }, []);
+
+  if (loading) return <p>Загрузка...</p>;
+  if (error) return <p style={{ color: "red" }}>Ошибка: {error}</p>;
 
   return (
-    <article className="post" style={{ scrollSnapAlign: 'start' }}>
-      <div className="post-inner">
-        <header className="post-head">
-          <div className="avatar" />
-          <div className="meta">
-            <div className="name">Аноним</div>
-            <div className="time">{post.createdAt ? new Date(post.createdAt).toLocaleString() : ''}</div>
+    <div className="post-feed" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {posts.length === 0 ? (
+        <p>Пока нет публикаций 😢</p>
+      ) : (
+        posts.map((post) => (
+          <div
+            key={post.id}
+            className="post-card"
+            style={{
+              background: "#fff",
+              borderRadius: "12px",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+              padding: "12px",
+              maxWidth: "500px",
+              margin: "0 auto",
+            }}
+          >
+            {post.imageUrl && (
+              <img
+                src={post.imageUrl}
+                alt="Post"
+                style={{
+                  width: "100%",
+                  borderRadius: "8px",
+                  marginBottom: "8px",
+                }}
+              />
+            )}
+            <p style={{ fontSize: "16px", margin: "8px 0" }}>{post.text}</p>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: "8px",
+                color: "#777",
+                fontSize: "14px",
+              }}
+            >
+              <span>
+                {post.createdAt?.seconds
+                  ? new Date(post.createdAt.seconds * 1000).toLocaleString()
+                  : "—"}
+              </span>
+              <button
+                onClick={() => handleLike(post.id)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#e91e63",
+                  fontSize: "16px",
+                }}
+              >
+                ❤️ {post.likes || 0}
+              </button>
+            </div>
           </div>
-        </header>
-
-        {post.image ? (
-          <div className="media-wrap"><img src={post.image} alt="" className="media" /></div>
-        ) : null}
-
-        <div className="body">{post.text}</div>
-
-        <footer className="post-footer">
-          <button className={`iconbtn ${liked ? 'active' : ''}`} onClick={toggleLike}>❤️ {likes}</button>
-          <button className="iconbtn">💬 {post.commentsCount || 0}</button>
-        </footer>
-      </div>
-
-      <style jsx>{`
-        .post{padding:12px;margin:12px 8px;border-radius:14px;background:var(--card);min-height:60vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 6px 18px rgba(0,0,0,0.6);}
-        .post-head{display:flex;gap:10px;align-items:center}
-        .avatar{width:44px;height:44px;border-radius:50%;background:#222}
-        .meta{display:flex;flex-direction:column}
-        .name{font-weight:600}
-        .media{width:100%;height:45vh;object-fit:cover;border-radius:8px}
-        .body{padding-top:8px;color:#ddd;line-height:1.4;white-space:pre-wrap}
-        .post-footer{display:flex;gap:8px;align-items:center}
-        .iconbtn{background:transparent;border:none;color:#fff;padding:8px;border-radius:8px;font-size:18px;cursor:pointer}
-        .iconbtn.active{color:var(--accent-2);transform:scale(1.05)}
-      `}</style>
-    </article>
+        ))
+      )}
+    </div>
   );
+}
+
+// Лайк по устройству
+async function handleLike(postId) {
+  try {
+    const deviceId = getDeviceId();
+    const res = await fetch("/api/like", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postId, deviceId }),
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+      console.warn("Ошибка при лайке:", data.error);
+    }
+  } catch (e) {
+    console.error("Ошибка при отправке лайка:", e);
+  }
+}
+
+function getDeviceId() {
+  const key = "device_id";
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(key, id);
+  }
+  return id;
 }
