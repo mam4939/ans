@@ -1,4 +1,4 @@
-name: Deploy to Firebase Hosting
+name: CI & Deploy to Firebase Hosting
 
 on:
   push:
@@ -13,21 +13,45 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 22
+      - name: Use Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install
 
-      - name: Build project
+      - name: Build Next.js project
         run: npm run build
+
+      # ✅ Создаем экспорт для Firebase Hosting
+      - name: Export static files
+        run: npm run export || echo "No export script, skipping static export"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: |
+            out
+            firebase.json
+            .firebaserc
+
+  deploy:
+    needs: build_and_deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: .
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
           projectId: ansay-98396
