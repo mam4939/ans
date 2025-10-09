@@ -1,0 +1,17 @@
+name: Validate Firebase service account secret
+on:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate FIREBASE_SERVICE_ACCOUNT exists and is valid JSON
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "ERROR: FIREBASE_SERVICE_ACCOUNT is missing"
+            exit 1
+          fi
+          node -e "try{JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT); console.log('PARSE_OK');}catch(e){console.error('PARSE_ERR', e.message); process.exit(2)}"
