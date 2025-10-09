@@ -13,6 +13,8 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "firebase": "10.12.2",
+    "firebase-admin": "^11.10.1",
+    "uuid": "^9.0.1",
     "swr": "2.1.0",
     "cloudinary": "1.41.3"
   }
